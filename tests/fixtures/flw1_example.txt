@@ -1,0 +1,61 @@
+# Spec Project 2, Follow-on 1 (Cargo and Dock Operations) example, copied verbatim from the
+# interview spec, with the ticks it omits inserted and marked by "#" comments.
+# Format: a command line; "→ " and the expected response; "#" comments.
+# Setup: travel_times = [[0,4,7],[4,0,3],[7,3,0]], dock_throughput = [2,4,1]. v1 at location 0,
+# v2 at location 2. Tick 1 delivers 1 unit to destination 2 and 1 unit to destination 1 at location 0.
+{"command":"init","parameters":{"travel_times":[[0,4,7],[4,0,3],[7,3,0]],"dock_throughput":[2,4,1],"vessels":[{"id":"v1","location":0},{"id":"v2","location":2}]}}
+→ {"status":"ok","payload":{"tick":0,"vessels":{"v1":{"state":"idle","location":0,"cargo":[]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
+# tick 1: 1 unit to dest 2 and 1 unit to dest 1 arrive at location 0
+{"command":"tick","parameters":{"cargo_manifest":[{"location":0,"destination":2,"quantity":1},{"location":0,"destination":1,"quantity":1}]}}
+→ {"status":"ok","payload":{"tick":1,"vessels":{"v1":{"state":"idle","location":0,"cargo":[]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[{"location":0,"destination":2,"quantity":1},{"location":0,"destination":1,"quantity":1}]}}
+# dock v1 at location 0 — planned state docked, committed still idle
+{"command":"dock","parameters":{"vessel_id":"v1"}}
+→ {"status":"ok","payload":{"tick":1,"vessels":{"v1":{"state":"docked","location":0,"cargo":[]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[{"location":0,"destination":2,"quantity":1},{"location":0,"destination":1,"quantity":1}]}}
+# tick commits the dock
+{"command":"tick","parameters":{}}
+→ {"status":"ok","payload":{"tick":2,"vessels":{"v1":{"state":"docked","location":0,"cargo":[]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[{"location":0,"destination":2,"quantity":1},{"location":0,"destination":1,"quantity":1}]}}
+# load both units (2 ops, throughput=2) — planned state updates immediately
+{"command":"load","parameters":{"vessel_id":"v1","destination":2}}
+→ {"status":"ok","payload":{"tick":2,"vessels":{"v1":{"state":"docked","location":0,"cargo":[{"destination":2,"quantity":1}]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[{"location":0,"destination":1,"quantity":1}]}}
+{"command":"load","parameters":{"vessel_id":"v1","destination":1}}
+→ {"status":"ok","payload":{"tick":2,"vessels":{"v1":{"state":"docked","location":0,"cargo":[{"destination":2,"quantity":1},{"destination":1,"quantity":1}]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
+# tick 3: commits the loads
+{"command":"tick","parameters":{}}
+→ {"status":"ok","payload":{"tick":3,"vessels":{"v1":{"state":"docked","location":0,"cargo":[{"destination":2,"quantity":1},{"destination":1,"quantity":1}]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
+# undock v1 — planned state idle, committed still docked
+{"command":"undock","parameters":{"vessel_id":"v1"}}
+→ {"status":"ok","payload":{"tick":3,"vessels":{"v1":{"state":"idle","location":0,"cargo":[{"destination":2,"quantity":1},{"destination":1,"quantity":1}]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
+# tick commits the undock
+{"command":"tick","parameters":{}}
+→ {"status":"ok","payload":{"tick":4,"vessels":{"v1":{"state":"idle","location":0,"cargo":[{"destination":2,"quantity":1},{"destination":1,"quantity":1}]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
+# send v1 to location 2 — arrives at tick 4 + 7 = 11
+{"command":"set_destination","parameters":{"vessel_id":"v1","destination":2}}
+→ {"status":"ok","payload":{"tick":4,"vessels":{"v1":{"state":"transit","from":0,"to":2,"arrives_at_tick":11,"cargo":[{"destination":2,"quantity":1},{"destination":1,"quantity":1}]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
+# [ticks 5–10 omitted — v1 in transit]
+# inserted (spec omits it): tick 5
+{"command":"tick","parameters":{}}
+# inserted (spec omits it): tick 6
+{"command":"tick","parameters":{}}
+# inserted (spec omits it): tick 7
+{"command":"tick","parameters":{}}
+# inserted (spec omits it): tick 8
+{"command":"tick","parameters":{}}
+# inserted (spec omits it): tick 9
+{"command":"tick","parameters":{}}
+# inserted (spec omits it): tick 10
+{"command":"tick","parameters":{}}
+# tick 11: v1 arrives at location 2
+{"command":"tick","parameters":{}}
+→ {"status":"ok","payload":{"tick":11,"vessels":{"v1":{"state":"idle","location":2,"cargo":[{"destination":2,"quantity":1},{"destination":1,"quantity":1}]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
+# park v1 at location 2
+{"command":"dock","parameters":{"vessel_id":"v1"}}
+→ {"status":"ok","payload":{"tick":11,"vessels":{"v1":{"state":"docked","location":2,"cargo":[{"destination":2,"quantity":1},{"destination":1,"quantity":1}]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
+# tick commits the dock
+{"command":"tick","parameters":{}}
+→ {"status":"ok","payload":{"tick":12,"vessels":{"v1":{"state":"docked","location":2,"cargo":[{"destination":2,"quantity":1},{"destination":1,"quantity":1}]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
+# unload dest 2 at location 2 (delivery, 1 op, throughput=1) — planned state updates immediately
+{"command":"unload","parameters":{"vessel_id":"v1","destination":2}}
+→ {"status":"ok","payload":{"tick":12,"vessels":{"v1":{"state":"docked","location":2,"cargo":[{"destination":1,"quantity":1}]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
+# tick 13: commits the unload
+{"command":"tick","parameters":{}}
+→ {"status":"ok","payload":{"tick":13,"vessels":{"v1":{"state":"docked","location":2,"cargo":[{"destination":1,"quantity":1}]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}

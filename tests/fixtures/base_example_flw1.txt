@@ -1,0 +1,31 @@
+# Spec Project 2, Base Problem example, re-expressed in the FLW1 format, which every response now
+# uses. The verbatim BASE-format transcript was validated at the BASE milestone (git tag
+# base-milestone). Changes from the spec text, besides the ticks it omits (inserted and marked by
+# "#" comments): init adds "dock_throughput":[2,4,1] (the FLW1 example setup), and every vessel
+# and the world state add an empty "cargo" list.
+# Format: a command line; "→ " and the expected response; "#" comments.
+# Setup: travel_times = [[0,4,7],[4,0,3],[7,3,0]]. v1 starts at location 0, v2 starts at location 2.
+{"command":"init","parameters":{"travel_times":[[0,4,7],[4,0,3],[7,3,0]],"dock_throughput":[2,4,1],"vessels":[{"id":"v1","location":0},{"id":"v2","location":2}]}}
+→ {"status":"ok","payload":{"tick":0,"vessels":{"v1":{"state":"idle","location":0,"cargo":[]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
+# send v1 to location 2, then override to location 1 — both valid before tick
+{"command":"set_destination","parameters":{"vessel_id":"v1","destination":2}}
+→ {"status":"ok","payload":{"tick":0,"vessels":{"v1":{"state":"transit","from":0,"to":2,"arrives_at_tick":7,"cargo":[]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
+{"command":"set_destination","parameters":{"vessel_id":"v1","destination":1}}
+→ {"status":"ok","payload":{"tick":0,"vessels":{"v1":{"state":"transit","from":0,"to":1,"arrives_at_tick":4,"cargo":[]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
+# tick commits destination 1
+{"command":"tick","parameters":{}}
+→ {"status":"ok","payload":{"tick":1,"vessels":{"v1":{"state":"transit","from":0,"to":1,"arrives_at_tick":4,"cargo":[]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
+# rejected — v1 is committed to transit since last tick
+{"command":"set_destination","parameters":{"vessel_id":"v1","destination":2}}
+→ {"status":"error","payload":{"message":"vessel v1 is not idle"}}
+# [ticks 2–3 omitted — v1 still in transit]
+# inserted (spec omits it): tick 2
+{"command":"tick","parameters":{}}
+# inserted (spec omits it): tick 3
+{"command":"tick","parameters":{}}
+# tick 4: v1 arrives at location 1
+{"command":"tick","parameters":{}}
+→ {"status":"ok","payload":{"tick":4,"vessels":{"v1":{"state":"idle","location":1,"cargo":[]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
+# v1 arrived — can be commanded immediately
+{"command":"set_destination","parameters":{"vessel_id":"v1","destination":2}}
+→ {"status":"ok","payload":{"tick":4,"vessels":{"v1":{"state":"transit","from":1,"to":2,"arrives_at_tick":7,"cargo":[]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}

@@ -1,0 +1,16 @@
+# Spec Project 2, Follow-on 2 (Historical State Queries) example, copied verbatim from the
+# interview spec. It continues the Follow-on 1 example after tick 13, so it is replayed after
+# tests/fixtures/flw1_example.txt. Format: a command line; "→ " and the expected response;
+# "#" comments.
+# query state at a past tick
+{"command":"get_state_at","parameters":{"tick":1}}
+→ {"status":"ok","payload":{"tick":1,"vessels":{"v1":{"state":"idle","location":0,"cargo":[]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[{"location":0,"destination":2,"quantity":1},{"location":0,"destination":1,"quantity":1}]}}
+# query current tick — identical to get_state at tick boundary
+{"command":"get_state_at","parameters":{"tick":13}}
+→ {"status":"ok","payload":{"tick":13,"vessels":{"v1":{"state":"docked","location":2,"cargo":[{"destination":1,"quantity":1}]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
+# querying the future is an error
+{"command":"get_state_at","parameters":{"tick":99}}
+→ {"status":"error","payload":{"message":"tick 99 is in the future (current tick: 13)"}}
+# simulation state is unchanged after historical queries
+{"command":"get_state","parameters":{}}
+→ {"status":"ok","payload":{"tick":13,"vessels":{"v1":{"state":"docked","location":2,"cargo":[{"destination":1,"quantity":1}]},"v2":{"state":"idle","location":2,"cargo":[]}},"cargo":[]}}
